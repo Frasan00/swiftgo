@@ -6,7 +6,8 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-
+  "swiftgo/internal/request"
+	"swiftgo/internal/response"
 	"swiftgo/internal/Router"
 )
 
@@ -15,7 +16,8 @@ type StartServerCb func()
 type Server struct {
 	Port string
 	Host string
-	GlobalMiddlewares []func(http.ResponseWriter, *http.Request) bool
+	Http http.ServeMux
+	GlobalMiddlewares []func(*request.Request, response.Response) bool
 }
 
 func (srv* Server) Start(cb StartServerCb) {
@@ -51,10 +53,22 @@ func (srv* Server) Start(cb StartServerCb) {
 	wg.Wait()
 }
 
+func convertHandler(customHandler router.HandlerType) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+			res := &response.Response{ResponseWriter: w}
+			req := &request.Request{Request: r}
+			customHandler(req, *res)
+	}
+}
+
+func (svr *Server) UseHandler(pattern string, handler router.HandlerType) {
+	http.HandleFunc(pattern, convertHandler(handler))
+}
+
 // UseRouter is a function that takes a router and sets up the routes in it in the Server
 func (srv *Server) UseRouter(router *router.Router) {
 	if srv.GlobalMiddlewares == nil {
-			srv.GlobalMiddlewares = []func(http.ResponseWriter, *http.Request) bool{}
+			srv.GlobalMiddlewares = []func(*request.Request, response.Response) bool{}
 	}
 
 	for _, route := range router.Routes {
@@ -72,14 +86,14 @@ func (srv *Server) UseRouter(router *router.Router) {
 					finalHandler = WrapMiddleware(finalHandler, middleware)
 			}
 
-			http.HandleFunc(route.Path, finalHandler)
+			srv.UseHandler(route.Path, finalHandler)
 	}
 }
 
 // Defines a global middleware for the server that will be applied to all routes
-func (srv *Server) UseGlobalMiddleware(middleware func(http.ResponseWriter, *http.Request) bool) {
+func (srv *Server) UseGlobalMiddleware(middleware router.MiddlewareType) {
 	if srv.GlobalMiddlewares == nil {
-			srv.GlobalMiddlewares = []func(http.ResponseWriter, *http.Request) bool{}
+			srv.GlobalMiddlewares = []func(*request.Request, response.Response) bool{}
 	}
 
 	srv.GlobalMiddlewares = append(srv.GlobalMiddlewares, middleware)

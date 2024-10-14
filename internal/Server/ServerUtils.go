@@ -3,6 +3,10 @@ package server
 import (
 	"log"
 	"net/http"
+
+	"swiftgo/internal/request"
+	"swiftgo/internal/response"
+	"swiftgo/internal/Router"
 )
 
 func StartServerCoroutine(host string, port string) {
@@ -12,12 +16,12 @@ func StartServerCoroutine(host string, port string) {
 	}
 }
 
-func WrapMiddleware(next http.HandlerFunc, middleware func(http.ResponseWriter, *http.Request) bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-			if !middleware(w, r) {
+func WrapMiddleware(next router.HandlerType, middleware router.MiddlewareType)router.HandlerType {
+	return func(r *request.Request, w response.Response) {
+			if !middleware(r, w) {
 					return
 			}
 
-			next(w, r)
+			next(r, w)
 	}
 }

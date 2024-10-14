@@ -1,14 +1,18 @@
 package router
 
 import (
-	"net/http"
+	"swiftgo/internal/request"
+	"swiftgo/internal/response"
 )
+
+type MiddlewareType func(*request.Request, response.Response) bool
+type HandlerType func(*request.Request, response.Response)
 
 type Route struct {
 	Method  string
 	Path    string
-	Middlewares []func(http.ResponseWriter, *http.Request) bool
-	Handler http.HandlerFunc
+	Middlewares []MiddlewareType
+	Handler HandlerType
 }
 
 type Router struct {
@@ -29,7 +33,7 @@ func (router *Router) AddRoute(route Route) {
 	router.Routes = append(router.Routes, route)
 }
 
-func (router *Router) Group(prefix string, middlewares []func(http.ResponseWriter, *http.Request) bool, cb func(*Router)) {
+func (router *Router) Group(prefix string, middlewares []MiddlewareType, cb func(*Router)) {
 	isPathValid, prefixPath := ValidatePath(prefix)
 	if !isPathValid {
 		panic("Invalid path in route " + prefixPath)
@@ -51,7 +55,7 @@ func (router *Router) Group(prefix string, middlewares []func(http.ResponseWrite
 	}
 }
 
-func (router *Router) Get(path string, middlewares []func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
+func (router *Router) Get(path string, middlewares []MiddlewareType, handler HandlerType) {
 	isPathValid, path := ValidatePath(path)
 	if !isPathValid {
 		panic("Invalid path in route " + path)
@@ -65,7 +69,7 @@ func (router *Router) Get(path string, middlewares []func(http.ResponseWriter, *
 	})
 }
 
-func (router *Router) Post(path string, middlewares []func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
+func (router *Router) Post(path string, middlewares []MiddlewareType, handler HandlerType) {
 	isPathValid, path := ValidatePath(path)
 	if !isPathValid {
 		panic("Invalid path in route " + path)
@@ -79,7 +83,7 @@ func (router *Router) Post(path string, middlewares []func(http.ResponseWriter, 
 	})
 }
 
-func (router *Router) Put(path string, middlewares []func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
+func (router *Router) Put(path string, middlewares []MiddlewareType, handler HandlerType) {
 	isPathValid, path := ValidatePath(path)
 	if !isPathValid {
 		panic("Invalid path in route " + path)
@@ -93,7 +97,7 @@ func (router *Router) Put(path string, middlewares []func(http.ResponseWriter, *
 	})
 }
 
-func (router *Router) Delete(path string, middlewares []func(http.ResponseWriter, *http.Request) bool, handler http.HandlerFunc) {
+func (router *Router) Delete(path string, middlewares []MiddlewareType, handler HandlerType) {
 	isPathValid, path := ValidatePath(path)
 	if !isPathValid {
 		panic("Invalid path in route " + path)

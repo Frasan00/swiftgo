@@ -38,10 +38,22 @@ app := server.Server{
 ### Handlers
 
 ```go
-userController := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"name": "John"}`))
+userController := func(req *request.Request, res: response.Response) {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
+		res.Write([]byte(`{"name": "John"}`))
+}
+```
+
+### Response
+- Native Http Responses have been extended with named methods for the responses
+```go
+userController := func(req *request.Request, res: response.Response) {
+		res.Ok([]byte(`{"name": "John"}`))
+}
+
+userController2 := func(req *request.Request, res: response.Response) {
+		res.NoContent()
 }
 ```
 
@@ -49,9 +61,9 @@ userController := func(w http.ResponseWriter, r *http.Request) {
 - You can define global middlewares that will be executed at the start of the middleware chain on every handler
 
 ```go
-globalMiddleware := func(w http.ResponseWriter, r *http.Request) bool {
-  w.Header().Set("Content-Type", "application/json")
-  w.WriteHeader(http.StatusOK)
+globalMiddleware := func(req *request.Request, res: response.Response) bool {
+  res.Header().Set("Content-Type", "application/json")
+  res.WriteHeader(http.StatusOK)
   return true
 }
 
@@ -61,15 +73,15 @@ app.UseGlobalMiddleware(globalMiddleware)
 ### Middlewares
 - Middlewares can both stop middleware chain and return to the client or continue to the next function based on the return of the middleware
 ```go
-returningMiddleware := func(w http.ResponseWriter, r *http.Request) bool {
+returningMiddleware := func(req *request.Request, res: response.Response) bool {
   log.Println("Middleware 1")
-  w.Header().Set("Content-Type", "application/json")
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(`{"message": "Hello, World from Middleware!"}`))
+  res.Header().Set("Content-Type", "application/json")
+  res.WriteHeader(http.StatusOK)
+  res.Write([]byte(`{"message": "Hello, World from Middleware!"}`))
   return false // Stops middleware chain
 }
 
-nonReturningMiddleware := func(w http.ResponseWriter, r *http.Request) bool {
+nonReturningMiddleware := func(req *request.Request, res: response.Response) bool {
   log.Println("Keep going!")
   return true // Continues middleware chain
 }
@@ -81,18 +93,18 @@ nonReturningMiddleware := func(w http.ResponseWriter, r *http.Request) bool {
 userRoutes := router.Router{}
 
 // You can define a route with it's own method, a list of middlewares and an handler
-userRoutes.Get("/users", []func(http.ResponseWriter, *http.Request) bool{middleware1}, func(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Content-Type", "application/json")
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(`{"message": "Hello, World!"}`))
+userRoutes.Get("/users", []router.MiddlewareType{middleware1}, func(req *request.Request, res: response.Response) {
+  res.Header().Set("Content-Type", "application/json")
+  res.WriteHeader(http.StatusOK)
+  res.Write([]byte(`{"message": "Hello, World!"}`))
 })
 
 // You can also create a group of middlewares with common initial path and middlewares
-userRoutes.Group("nested", []func(http.ResponseWriter, *http.Request) bool{middleware1}, func(router *router.Router) {
-  router.Get("/internal", []func(http.ResponseWriter, *http.Request) bool{middleware2}, func(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusOK)
-    w.Write([]byte(`{"message": "Hello, World!"}`))
+userRoutes.Group("nested", []router.MiddlewareType{middleware1}, func(router *router.Router) {
+  router.Get("/internal", []router.MiddlewareType{middleware2}, func(req *request.Request, res: response.Response) {
+    res.Header().Set("Content-Type", "application/json")
+    res.WriteHeader(http.StatusOK)
+    res.Write([]byte(`{"message": "Hello, World!"}`))
   }) // Final route will be nested/internal and will use middleware1 and middleware2 before handler execution
 })
 
